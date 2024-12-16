@@ -1,17 +1,24 @@
 <script lang="ts">
   import Self from "./editor.svelte";
-
-  let { value = $bindable() }: { key?: string; value: unknown } = $props();
+  let { value = $bindable() } = $props();
 </script>
 
 {#if typeof value === "object"}
+  <!-- When encountering an array or object, we loop through the keys
+      and recursively render the same editor comp until leafs (primitive values) are reached -->
+
   {#if Array.isArray(value)}
     {@const arr = value}
     {@const lastItem = value.at(-1)}
     <ul>
-      <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars I think there is a LSP bug here -->
+      <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars I think there is a LSP bug here... Disregard -->
       {#each value as _v, idx}
-        <li>{idx} <Self bind:value={value[idx]} /></li>
+        <li>
+          <span>{idx}</span>
+          <!-- Deep state binding for free! -->
+          <!-- Check the elements in devtools to see the magic of fine grained reactivity in action! -->
+          <Self bind:value={value[idx]} />
+        </li>
       {/each}
       {#if typeof lastItem === "string" || typeof lastItem === "number" || typeof lastItem === "boolean"}
         <button onclick={() => arr.push(lastItem)}>Add</button>
@@ -27,8 +34,12 @@
       {/each}
     </ul>
   {/if}
-{:else if typeof value === "string" || typeof value === "number"}
-  <input type={typeof value === "string" ? "text" : "number"} bind:value />
+  <!-- When reaching the leafs, we bind deeply nested values to basic uncontrolled controls and 
+       let svelte do its magic! -->
+{:else if typeof value === "string"}
+  <input bind:value />
+{:else if typeof value === "number"}
+  <input type="number" bind:value />
 {:else if typeof value === "boolean"}
   <input type="checkbox" bind:checked={value} />
 {/if}
